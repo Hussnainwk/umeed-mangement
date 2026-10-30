@@ -1,0 +1,141 @@
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Inter:wght@300;400;500;600;700&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Manrope:wght@300;400;500;600;700;800&family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Oswald:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,800;1,400&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-primary: #DDE3E8;
+  --text-primary: #3A0F34;
+  --text-muted: #6b4a67;
+  --accent: #EAAA00;
+  --surface-raised: #DDE3E8;
+  --surface-inset: #d5dbe0;
+  --border-subtle: #cbd3da;
+  --font-active: 'Manrope', sans-serif;
+  --font-weight-active: 400;
+}
+
+.dark {
+  --bg-primary: #150917;
+  --text-primary: #f6f1f7;
+  --text-muted: #bdaec2;
+  --accent: #EAAA00;
+  --surface-raised: #200f23;
+  --surface-inset: #180a1a;
+  --border-subtle: #3d1c43;
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-active);
+  font-weight: var(--font-weight-active);
+  min-height: 100vh;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  overflow-x: hidden;
+}
+
+/* Custom Soft-Neumorphic Utility Classes */
+.neu-card {
+  background-color: #DDE3E8;
+  box-shadow: 7px 7px 16px #b8bec5, -7px -7px 16px #ffffff;
+  border-radius: 1rem;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dark .neu-card {
+  background-color: #1f0f22;
+  box-shadow: 7px 7px 16px #0b040c, -7px -7px 16px #2e1633;
+  border: 1px solid rgba(84, 25, 76, 0.25);
+}
+
+.neu-card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 10px 10px 22px #b0b7be, -10px -10px 22px #ffffff;
+}
+
+.dark .neu-card-hover:hover {
+  box-shadow: 10px 10px 22px #080209, -10px -10px 22px #381b3e;
+}
+
+.neu-inset {
+  background-color: #d8dee3;
+  box-shadow: inset 3px 3px 6px #b8bec5, inset -3px -3px 6px #ffffff;
+  border-radius: 0.75rem;
+  transition: all 0.2s ease;
+}
+
+.dark .neu-inset {
+  background-color: #180a1a;
+  box-shadow: inset 3px 3px 6px #0c040d, inset -3px -3px 6px #29132e;
+  border: 1px solid rgba(84, 25, 76, 0.2);
+}
+
+.neu-btn {
+  background-color: #DDE3E8;
+  box-shadow: 5px 5px 12px #b8bec5, -5px -5px 12px #ffffff;
+  transition: all 0.2s ease;
+}
+
+.neu-btn:hover {
+  box-shadow: 7px 7px 15px #b0b7be, -7px -7px 15px #ffffff;
+  transform: translateY(-1px);
+}
+
+.neu-btn:active, .neu-btn-pressed {
+  box-shadow: inset 3px 3px 6px #b8bec5, inset -3px -3px 6px #ffffff !important;
+  transform: translateY(1px);
+}
+
+.dark .neu-btn {
+  background-color: #241128;
+  box-shadow: 5px 5px 12px #0c040d, -5px -5px 12px #311736;
+  border: 1px solid rgba(234, 170, 0, 0.15);
+}
+
+.dark .neu-btn:hover {
+  box-shadow: 7px 7px 15px #080209, -7px -7px 15px #3a1c40;
+}
+
+.dark .neu-btn:active, .dark .neu-btn-pressed {
+  box-shadow: inset 3px 3px 6px #0b040c, inset -3px -3px 6px #2b132e !important;
+}
+
+/* Glassmorphism for floating elements and overlays */
+.glass-overlay {
+  background: rgba(221, 227, 232, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+}
+
+.dark .glass-overlay {
+  background: rgba(26, 12, 29, 0.82);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(234, 170, 0, 0.15);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #bcc3ca;
+  border-radius: 9999px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #3a1940;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #EAAA00;
+}
