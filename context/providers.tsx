@@ -3,6 +3,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ToastProvider } from "@/components/ui";
 import { AuthProvider } from "@/context/auth";
+import LiveSync from "@/components/ui/LiveSync";
 
 // ─── Theme Context ────────────────────────────────────────────────────────────
 export type ThemeMode = "light" | "dark" | "system";
@@ -193,6 +194,8 @@ export default function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
+      {/* LiveSync: Supabase Realtime listener — mounts once at app level */}
+      <LiveSync />
       <ThemeContext.Provider value={{ theme, resolvedTheme, setTheme, toggleTheme }}>
         <TypographyContext.Provider value={{ currentFont, currentWeight, setFont, setWeight }}>
           <NavContext.Provider

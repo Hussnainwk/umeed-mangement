@@ -26,6 +26,7 @@ import {
   createTreatmentInDb,
 } from "@/lib/dataService";
 import { checkSupabaseConnection } from "@/lib/supabase";
+import { DB_CHANGE_EVENT } from "@/components/ui/LiveSync";
 import {
   Database,
   RefreshCw,
@@ -107,6 +108,15 @@ export default function AppHome() {
 
   useEffect(() => {
     loadData();
+  }, [loadData]);
+
+  // ── Realtime live-sync: reload data when LiveSync fires a DB-change event ──
+  useEffect(() => {
+    const handleDbChange = () => {
+      loadData();
+    };
+    window.addEventListener(DB_CHANGE_EVENT, handleDbChange);
+    return () => window.removeEventListener(DB_CHANGE_EVENT, handleDbChange);
   }, [loadData]);
 
   // Patient Management Search & Filters
@@ -196,10 +206,10 @@ export default function AppHome() {
 
   return (
     <div className="space-y-6">
-      {/* ── OFFLINE STATUS & SYNC QUEUE BANNER ── */}
+      {/* â”€â”€ OFFLINE STATUS & SYNC QUEUE BANNER â”€â”€ */}
       <OfflineBanner isLiveDb={isLiveDb} onSyncComplete={loadData} />
 
-      {/* ── LIVE DATABASE STATUS BANNER ── */}
+      {/* â”€â”€ LIVE DATABASE STATUS BANNER â”€â”€ */}
       <div className="neu-card p-3 sm:px-4 sm:py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs border border-white/60 dark:border-[#3d1c43]/60">
         <div className="flex items-center gap-2.5">
           <div
@@ -220,7 +230,7 @@ export default function AppHome() {
 
         <div className="flex items-center gap-2.5">
           <span className="text-[11px] text-slate-500 dark:text-slate-400">
-            {patients.length} Registered Patients · {treatments.length} Factor Infusions
+            {patients.length} Registered Patients Â· {treatments.length} Factor Infusions
           </span>
 
           <button
@@ -234,7 +244,7 @@ export default function AppHome() {
         </div>
       </div>
 
-      {/* ── EMPTY STATE FOR NEW REGISTRY (0 PATIENTS) ── */}
+      {/* â”€â”€ EMPTY STATE FOR NEW REGISTRY (0 PATIENTS) â”€â”€ */}
       {patients.length === 0 && !dataLoading && activeView === "patients" && (
         <div className="neu-card p-10 text-center space-y-4 border border-dashed border-[#EAAA00]/40">
           <div className="w-14 h-14 rounded-2xl neu-inset mx-auto flex items-center justify-center text-[#EAAA00]">
