@@ -64,10 +64,10 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
               t.type === "success"
                 ? "border-emerald-500"
                 : t.type === "error"
-                ? "border-rose-500"
-                : t.type === "warning"
-                ? "border-[#EAAA00]"
-                : "border-sky-500"
+                  ? "border-rose-500"
+                  : t.type === "warning"
+                    ? "border-[#EAAA00]"
+                    : "border-sky-500"
             }`}
           >
             <div className="flex items-start justify-between gap-2">
@@ -164,7 +164,7 @@ export function Kpi({
     <div className="neu-card neu-card-hover p-4 flex flex-col justify-between relative overflow-hidden group">
       {/* Decorative accent sliver */}
       <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#EAAA00]/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-      
+
       <div className="flex items-start justify-between gap-2">
         <span className="text-xs font-medium text-slate-600 dark:text-[#bdaec2] line-clamp-1">
           {label}
@@ -220,7 +220,8 @@ export function Label({
     <label className={`block ${className}`}>
       <div className="flex items-center justify-between mb-1.5">
         <span className="text-xs font-semibold text-[#3A0F34] dark:text-[#e4dbe7]">
-          {text} {required && <span className="text-[#EAAA00] font-bold">*</span>}
+          {text}{" "}
+          {required && <span className="text-[#EAAA00] font-bold">*</span>}
         </span>
         {hint && (
           <span className="text-[11px] text-slate-500 dark:text-slate-400">
@@ -267,7 +268,7 @@ export function Badge({
 
   return (
     <span
-      className={`inline-flex items-center gap-1 font-medium rounded-full ${styles[variant]} ${sizes[size]} ${className}`}
+      className={`inline-flex items-center gap-1 text-center font-medium rounded-full ${styles[variant]} ${sizes[size]} ${className}`}
     >
       {children}
     </span>
@@ -360,4 +361,3 @@ export function SegmentedTabs<T extends string>({
 // 8. Universal Bulk Upload & Download Modals
 export { BulkUploadModal, BulkDownloadModal } from "./BulkModal";
 export { default as OfflineBanner } from "./OfflineBanner";
-

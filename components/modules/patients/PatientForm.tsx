@@ -54,7 +54,8 @@ export default function PatientForm({
     if (initialData) {
       return {
         ...initialData,
-        household_other_bleeder: initialData.bleeding_episodes_12m > 0 ? "yes" : "no",
+        household_other_bleeder:
+          initialData.bleeding_episodes_12m > 0 ? "yes" : "no",
       };
     }
     return {
@@ -75,7 +76,9 @@ export default function PatientForm({
 
   // Track expanded/minimized state for each section
   // Default: First section (Personal) expanded, others minimized for cleaner step-by-step UX
-  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(() => {
+  const [expandedSections, setExpandedSections] = useState<
+    Record<string, boolean>
+  >(() => {
     const initial: Record<string, boolean> = {};
     SECTIONS.forEach((s, idx) => {
       initial[s.title] = idx === 0; // only Personal expanded initially
@@ -86,7 +89,8 @@ export default function PatientForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const set = (k: string, val: any) => setV((p) => ({ ...p, [k]: val }));
-  const visible = (f: Field) => !f.when || String(v[f.when[0]] ?? "") === f.when[1];
+  const visible = (f: Field) =>
+    !f.when || String(v[f.when[0]] ?? "") === f.when[1];
 
   const toggleSection = (title: string) => {
     setExpandedSections((prev) => ({
@@ -164,7 +168,8 @@ export default function PatientForm({
       },
     ];
 
-    const pick = sampleProfiles[Math.floor(Math.random() * sampleProfiles.length)];
+    const pick =
+      sampleProfiles[Math.floor(Math.random() * sampleProfiles.length)];
 
     // Generate valid Pakistani CNIC format (chk_cnic constraint: '^\d{5}-?\d{7}-?\d$')
     const rand5 = Math.floor(10000 + Math.random() * 90000);
@@ -211,7 +216,8 @@ export default function PatientForm({
       treatment_type: pick.treatment,
       inhibitor_status: "Negative",
       bleeding_episodes_12m: pick.bleeds,
-      treatment_products: pick.dx === "Hemophilia B" ? "Factor IX" : "Factor VIII (Recombinant)",
+      treatment_products:
+        pick.dx === "Hemophilia B" ? "Factor IX" : "Factor VIII (Recombinant)",
       hcv: "Negative",
       hiv: "Negative",
       hbv: "Negative",
@@ -221,7 +227,8 @@ export default function PatientForm({
       filled_by: "Dr. Hammad (Lead Administrator)",
       designation: "Clinical Officer",
       organization: "Pakistan Hemophilia Patients Welfare Society",
-      comments: "Automated test enrollment dummy data for verifying database synchronization and API upload.",
+      comments:
+        "Automated test enrollment dummy data for verifying database synchronization and API upload.",
     };
 
     setV(dummy);
@@ -229,26 +236,34 @@ export default function PatientForm({
     addToast(
       "info",
       "Dummy Data Populated",
-      `Realistic test profile for "${pick.name}" autofilled. Click "Save Patient Record" to test uploading.`
+      `Realistic test profile for "${pick.name}" autofilled. Click "Save Patient Record" to test uploading.`,
     );
   };
 
   // Section completion checks
-  const getSectionStatus = (title: string): { completed: boolean; filledCount: number; totalCount: number } => {
+  const getSectionStatus = (
+    title: string,
+  ): { completed: boolean; filledCount: number; totalCount: number } => {
     const sec = SECTIONS.find((s) => s.title === title);
     if (!sec) return { completed: false, filledCount: 0, totalCount: 0 };
 
     const visibleFields = sec.fields.filter(visible);
     const filledFields = visibleFields.filter((f) => {
       const val = v[f.key];
-      if (f.key === "patient_name") return Boolean(val && val.trim().length >= 2);
+      if (f.key === "patient_name")
+        return Boolean(val && val.trim().length >= 2);
       return val !== undefined && val !== "" && val !== null;
     });
 
     // Personal is completed if required patient_name is filled and at least 3 other attributes are present
     const completed =
       title === "Personal"
-        ? Boolean(v.patient_name && v.patient_name.trim().length >= 2 && v.gender && v.blood_group)
+        ? Boolean(
+            v.patient_name &&
+            v.patient_name.trim().length >= 2 &&
+            v.gender &&
+            v.blood_group,
+          )
         : filledFields.length >= Math.min(2, visibleFields.length);
 
     return {
@@ -272,8 +287,15 @@ export default function PatientForm({
     const currentTitle = SECTIONS[currentIndex].title;
 
     // Validate basics if on personal
-    if (currentTitle === "Personal" && (!v.patient_name || v.patient_name.trim().length < 2)) {
-      addToast("error", "Basic Detail Required", "Please enter patient name before proceeding.");
+    if (
+      currentTitle === "Personal" &&
+      (!v.patient_name || v.patient_name.trim().length < 2)
+    ) {
+      addToast(
+        "error",
+        "Basic Detail Required",
+        "Please enter patient name before proceeding.",
+      );
       return;
     }
 
@@ -284,7 +306,11 @@ export default function PatientForm({
         [currentTitle]: false, // collapse current
         [nextTitle]: true, // expand next
       }));
-      addToast("success", "Section Completed", `Moving to Step ${currentIndex + 2}: ${nextTitle}`);
+      addToast(
+        "success",
+        "Section Completed",
+        `Moving to Step ${currentIndex + 2}: ${nextTitle}`,
+      );
     }
   };
 
@@ -304,7 +330,11 @@ export default function PatientForm({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!v.patient_name || v.patient_name.trim().length < 2) {
-      addToast("error", "Name Required", "Please enter a valid patient full name in Personal Basics.");
+      addToast(
+        "error",
+        "Name Required",
+        "Please enter a valid patient full name in Personal Basics.",
+      );
       // Auto expand personal
       setExpandedSections((prev) => ({ ...prev, Personal: true }));
       return;
@@ -313,7 +343,8 @@ export default function PatientForm({
     setIsSubmitting(true);
 
     setTimeout(() => {
-      const generatedId = initialData?.patient_id || Math.floor(Math.random() * 800) + 200;
+      const generatedId =
+        initialData?.patient_id || Math.floor(Math.random() * 800) + 200;
       const regNo = initialData?.registration_no || `H-${generatedId}`;
 
       const newRecord: PatientRecord = {
@@ -321,7 +352,9 @@ export default function PatientForm({
         registration_no: regNo,
         patient_name: v.patient_name,
         date_of_birth: v.date_of_birth || "2000-01-01",
-        age: v.date_of_birth ? 2024 - parseInt(v.date_of_birth.slice(0, 4)) : 24,
+        age: v.date_of_birth
+          ? 2024 - parseInt(v.date_of_birth.slice(0, 4))
+          : 24,
         gender: v.gender || "Male",
         marital_status: v.marital_status || "Single",
         cnic: v.cnic || "",
@@ -342,8 +375,8 @@ export default function PatientForm({
           Number(v.baseline_factor_activity) < 1
             ? "Severe"
             : Number(v.baseline_factor_activity) <= 5
-            ? "Moderate"
-            : "Mild",
+              ? "Moderate"
+              : "Mild",
         baseline_factor_activity: Number(v.baseline_factor_activity) || 1.2,
         treatment_type: v.treatment_type || "On-demand",
         inhibitor_status: v.inhibitor_status || "Negative",
@@ -362,8 +395,10 @@ export default function PatientForm({
       setIsSubmitting(false);
       addToast(
         "success",
-        initialData ? "Patient Profile Updated" : "Patient Registered Successfully",
-        `${newRecord.registration_no} - ${newRecord.patient_name} has been enrolled in the registry.`
+        initialData
+          ? "Patient Profile Updated"
+          : "Patient Registered Successfully",
+        `${newRecord.registration_no} - ${newRecord.patient_name} has been enrolled in the registry.`,
       );
       setSelectedPatientId(newRecord.patient_id);
       setActiveView("patients");
@@ -371,7 +406,10 @@ export default function PatientForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 animate-in fade-in duration-300">
+    <form
+      onSubmit={handleSubmit}
+      className="space-y-6 animate-in fade-in duration-300"
+    >
       {/* 1. Header & Stepper Telemetry */}
       <div className="neu-card p-5 border border-white/60 dark:border-[#3d1c43]/60 space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-white/50 dark:border-[#38163f]/60">
@@ -379,12 +417,15 @@ export default function PatientForm({
             <div className="flex items-center gap-2.5">
               <span className="p-2 rounded-xl neu-inset text-base">➕</span>
               <h2 className="text-xl font-bold tracking-tight text-[#3A0F34] dark:text-[#f6f1f7]">
-                {initialData ? `Edit Record: ${initialData.registration_no}` : "New Patient Registry Enrollment"}
+                {initialData
+                  ? `Edit Record: ${initialData.registration_no}`
+                  : "New Patient Registry Enrollment"}
               </h2>
               <Badge variant="primary">Auto H-# Generation</Badge>
             </div>
             <p className="text-xs text-slate-500 dark:text-[#bdaec2] mt-1">
-              Step-by-step registration with collapsible sections. Complete the basic details first to advance.
+              Step-by-step registration with collapsible sections. Complete the
+              basic details first to advance.
             </p>
           </div>
 
@@ -492,7 +533,9 @@ export default function PatientForm({
                 <span>{SECTION_ICONS[sec.title] || "📋"}</span>
                 <span>{sec.title}</span>
                 {status.completed ? (
-                  <span className="text-[10px] text-emerald-600 font-bold">✓</span>
+                  <span className="text-[10px] text-emerald-600 font-bold">
+                    ✓
+                  </span>
                 ) : (
                   <span className="text-[10px] text-slate-400">
                     {status.filledCount}/{status.totalCount}
@@ -526,7 +569,7 @@ export default function PatientForm({
                     {icon}
                   </div>
                   <div>
-                    <div className="flex items-center gap-2">
+                    <div className="sm:flex items-center gap-2">
                       <h3 className="font-bold text-sm text-[#3A0F34] dark:text-[#f6f1f7]">
                         Step {idx + 1}: {s.title} Details
                       </h3>
@@ -542,7 +585,8 @@ export default function PatientForm({
                       )}
                     </div>
                     <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                      {status.filledCount} of {status.totalCount} fields documented
+                      {status.filledCount} of {status.totalCount} fields
+                      documented
                     </p>
                   </div>
                 </div>
@@ -564,7 +608,11 @@ export default function PatientForm({
                     {s.fields.filter(visible).map((f) => (
                       <div
                         key={f.key}
-                        className={f.type === "textarea" ? "sm:col-span-2 lg:col-span-3" : ""}
+                        className={
+                          f.type === "textarea"
+                            ? "sm:col-span-2 lg:col-span-3"
+                            : ""
+                        }
                       >
                         <Label text={f.label} required={f.required}>
                           {f.type === "select" || f.type === "bool" ? (
@@ -574,9 +622,16 @@ export default function PatientForm({
                               onChange={(e) => set(f.key, e.target.value)}
                             >
                               <option value="">Select option...</option>
-                              {(f.type === "bool" ? ["yes", "no"] : f.options!).map((o) => (
+                              {(f.type === "bool"
+                                ? ["yes", "no"]
+                                : f.options!
+                              ).map((o) => (
                                 <option key={o} value={o}>
-                                  {f.type === "bool" ? (o === "yes" ? "Yes" : "No") : o}
+                                  {f.type === "bool"
+                                    ? o === "yes"
+                                      ? "Yes"
+                                      : "No"
+                                    : o}
                                 </option>
                               ))}
                             </select>
@@ -605,7 +660,8 @@ export default function PatientForm({
                                         set(f.key, next);
                                       }}
                                     />
-                                    {checked ? "✓ " : ""}{o}
+                                    {checked ? "✓ " : ""}
+                                    {o}
                                   </label>
                                 );
                               })}
@@ -658,8 +714,14 @@ export default function PatientForm({
                           <span>&rarr;</span>
                         </button>
                       ) : (
-                        <button type="submit" disabled={isSubmitting} className={btnCls}>
-                          {isSubmitting ? "Saving..." : "💾 Save Patient Record"}
+                        <button
+                          type="submit"
+                          disabled={isSubmitting}
+                          className={btnCls}
+                        >
+                          {isSubmitting
+                            ? "Saving..."
+                            : "💾 Save Patient Record"}
                         </button>
                       )}
                     </div>
