@@ -22,6 +22,7 @@ import {
   getInjections,
   getHistory,
   createPatientInDb,
+  updatePatientInDb,
   deletePatientFromDb,
   createTreatmentInDb,
 } from "@/lib/dataService";
@@ -55,7 +56,7 @@ const SETTINGS_VIEWS = [
 ];
 
 export default function AppHome() {
-  const { activeView, setActiveView, selectedPatientId } = useNav();
+  const { activeView, setActiveView, selectedPatientId, setSelectedPatientId } = useNav();
   const { addToast } = useToast();
 
   // Connection & Data Loading State
@@ -68,6 +69,7 @@ export default function AppHome() {
   const [treatments, setTreatments] = useState<TreatmentRecord[]>([]);
   const [injections, setInjections] = useState<InjectionItem[]>([]);
   const [history, setHistory] = useState<HistoryRecord[]>([]);
+  const [editingPatient, setEditingPatient] = useState<PatientRecord | null>(null);
 
   // Load Data: fetches only real data from database
   const loadData = useCallback(async () => {
@@ -160,6 +162,35 @@ export default function AppHome() {
       `Removed ${selectedIds.length} selected patient records.`
     );
     setSelectedIds([]);
+  };
+
+  // Handle Patient Record Update
+  const handlePatientUpdated = async (updatedP: PatientRecord) => {
+    const res = await updatePatientInDb(updatedP, isLiveDb);
+    if (res.success && res.data) {
+      setPatients((prev) =>
+        prev.map((p) => (p.patient_id === updatedP.patient_id ? res.data! : p))
+      );
+      addToast(
+        "success",
+        "Patient Profile Updated",
+        `${updatedP.registration_no} - ${updatedP.patient_name} changes saved to database.`
+      );
+    } else {
+      setPatients((prev) =>
+        prev.map((p) => (p.patient_id === updatedP.patient_id ? updatedP : p))
+      );
+      if (res.error) {
+        addToast("warning", "Saved Locally", `DB notice: ${res.error}`);
+      }
+    }
+    setEditingPatient(null);
+  };
+
+  const handleStartEdit = (p: PatientRecord) => {
+    setEditingPatient(p);
+    setSelectedPatientId(p.patient_id);
+    setActiveView("patients_edit");
   };
 
   // Single Delete Confirmation
@@ -303,6 +334,7 @@ export default function AppHome() {
           setSelectedIds={setSelectedIds}
           onBulkDelete={handleBulkDelete}
           onSelectDeleteCandidate={setDeleteCandidate}
+          onEditPatient={handleStartEdit}
           isLiveDb={isLiveDb}
           onPatientsImported={(newP) => {
             setPatients((prev) => [...newP, ...prev]);
@@ -322,6 +354,19 @@ export default function AppHome() {
         />
       )}
 
+      {/* 3b. EDIT EXISTING PATIENT */}
+      {activeView === "patients_edit" && (
+        <PatientForm
+          initialData={editingPatient || activePatient}
+          onSuccess={handlePatientUpdated}
+          isLiveDb={isLiveDb}
+          patients={patients}
+          onPatientsImported={(newP) => {
+            setPatients((prev) => [...newP, ...prev]);
+          }}
+        />
+      )}
+
       {/* 4. PATIENT DETAILS PROFILE */}
       {activeView === "patient_details" && (
         activePatient ? (
@@ -330,6 +375,7 @@ export default function AppHome() {
             patients={patients}
             treatments={treatments}
             onAddTreatment={handleTreatmentAdded}
+            onEditPatient={handleStartEdit}
           />
         ) : (
           <div className="neu-card p-8 text-center text-xs text-slate-500 space-y-3">

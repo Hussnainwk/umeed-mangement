@@ -172,7 +172,7 @@ export default function TypographyStudio() {
   const { currentFont, setFont, currentWeight, setWeight } = useTypography();
   const { addToast } = useToast();
 
-  const [previewText, setPreviewText] = useState("Befal");
+  const [previewText, setPreviewText] = useState("Umeed");
   const [fontSize, setFontSize] = useState(48);
   const [filterClass, setFilterClass] = useState<string>("all");
 
@@ -295,7 +295,7 @@ export default function TypographyStudio() {
               }}
               className="text-[#3A0F34] dark:text-[#f6f1f7] tracking-tight transition-all py-2"
             >
-              {previewText || "Befal"}
+              {previewText || "Umeed Registry"}
             </div>
 
             <p className="text-sm text-slate-600 dark:text-[#bdaec2] max-w-xl">

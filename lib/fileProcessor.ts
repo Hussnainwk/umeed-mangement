@@ -23,27 +23,51 @@ export interface ParsedDataResult {
 export const PATIENT_COLUMNS: ColumnDefinition[] = [
   { key: "patient_name", label: "Patient Full Name", required: true, example: "Muhammad Ali" },
   { key: "registration_no", label: "Registration No (H-#)", required: false, example: "H-101" },
-  { key: "cnic", label: "CNIC (XXXXX-XXXXXXX-X)", required: false, example: "37405-1234567-1" },
+  { key: "cnic", label: "CNIC (13 digits: XXXXX-XXXXXXX-X)", required: false, example: "35202-1234567-1" },
   { key: "date_of_birth", label: "Date of Birth (YYYY-MM-DD)", required: false, example: "1998-05-14" },
   { key: "gender", label: "Gender (Male/Female/Other)", required: false, example: "Male" },
-  { key: "blood_group", label: "Blood Group", required: false, example: "O+" },
+  { key: "blood_group", label: "Blood Group (A+/A-/B+/B-/AB+/AB-/O+/O-)", required: false, example: "O+" },
   { key: "marital_status", label: "Marital Status", required: false, example: "Single" },
+  { key: "qualification", label: "Qualification", required: false, example: "Bachelors" },
+  { key: "profession", label: "Profession", required: false, example: "Teacher" },
+  { key: "job_title", label: "Job Title", required: false, example: "Instructor" },
+  { key: "address", label: "Residential Address", required: false, example: "House 12, Street 4" },
+  { key: "city", label: "City", required: false, example: "Rawalpindi" },
+  { key: "city_town", label: "City / Town", required: false, example: "Saddar" },
+  { key: "province", label: "Province", required: false, example: "Punjab" },
+  { key: "telephone", label: "Mobile Phone (11 digits: 03XX-XXXXXXX or 12 digits: +92 3XX XXXXXXX)", required: false, example: "0300-1234567" },
+  { key: "emergency_number", label: "Emergency Phone", required: false, example: "0321-7654321" },
+  { key: "email", label: "Email Address", required: false, example: "ali@example.com" },
+  { key: "guardian_name", label: "Guardian / Parent Name", required: false, example: "Tariq Ali" },
+  { key: "guardian_cnic", label: "Guardian CNIC (13 digits: XXXXX-XXXXXXX-X)", required: false, example: "35202-7654321-1" },
+  { key: "household_other_bleeder", label: "Household Other Bleeder (true/false)", required: false, example: false },
+  { key: "household_patient_name", label: "Household Bleeder Name", required: false, example: "" },
+  { key: "household_relation", label: "Household Bleeder Relation", required: false, example: "" },
   { key: "diagnosis", label: "Diagnosis", required: false, example: "Hemophilia A" },
+  { key: "registered_with_chapter", label: "Registered with Chapter (true/false)", required: false, example: true },
+  { key: "chapter_name", label: "Chapter / HTC Name", required: false, example: "UWF Rawalpindi" },
+  { key: "diagnostic_technique", label: "Diagnostic Technique", required: false, example: "Factor assay" },
+  { key: "diagnostic_other", label: "Other Diagnostics", required: false, example: "" },
   { key: "baseline_factor_activity", label: "Factor Activity (%)", required: false, example: 1.5 },
+  { key: "diagnostic_reason", label: "Reason for Diagnostic", required: false, example: "Bleeding symptoms" },
+  { key: "diagnostic_reason_other", label: "Other Diagnostic Reason", required: false, example: "" },
+  { key: "age_first_diagnosed", label: "Age First Diagnosed", required: false, example: 2 },
   { key: "treatment_type", label: "Treatment Modality", required: false, example: "On-demand" },
-  { key: "inhibitor_status", label: "Inhibitor Status", required: false, example: "Negative" },
+  { key: "inhibitor_status", label: "Inhibitor Status (Positive/Negative/Not tested)", required: false, example: "Negative" },
   { key: "bleeding_episodes_12m", label: "Bleeds (Last 12M)", required: false, example: 2 },
   { key: "treatment_products", label: "Products Used", required: false, example: "Factor VIII" },
-  { key: "city", label: "City", required: false, example: "Rawalpindi" },
-  { key: "province", label: "Province", required: false, example: "Punjab" },
-  { key: "telephone", label: "Telephone Contact", required: false, example: "0300-1234567" },
-  { key: "email", label: "Email Address", required: false, example: "ali@example.com" },
-  { key: "guardian_name", label: "Guardian Name", required: false, example: "Tariq Ali" },
-  { key: "guardian_cnic", label: "Guardian CNIC", required: false, example: "37405-7654321-1" },
-  { key: "hcv", label: "HCV Status", required: false, example: "Negative" },
-  { key: "hiv", label: "HIV Status", required: false, example: "Negative" },
-  { key: "hbv", label: "HBV Status", required: false, example: "Negative" },
-  { key: "address", label: "Residential Address", required: false, example: "House 12, Street 4" },
+  { key: "hcv", label: "HCV Status (Positive/Negative/Not tested)", required: false, example: "Negative" },
+  { key: "hiv", label: "HIV Status (Positive/Negative/Not tested)", required: false, example: "Negative" },
+  { key: "hbv", label: "HBV Status (Positive/Negative/Not tested)", required: false, example: "Negative" },
+  { key: "vaccinations", label: "Vaccinations", required: false, example: "Hepatitis A, Hepatitis B" },
+  { key: "other_vaccinations", label: "Other Vaccinations", required: false, example: "" },
+  { key: "joint_deformity", label: "Joint Deformity", required: false, example: "Mild" },
+  { key: "activity_level", label: "Activity Level", required: false, example: "Moderate" },
+  { key: "filled_by", label: "Form Filled By (Operator)", required: false, example: "Dr. Hammad" },
+  { key: "designation", label: "Operator Designation", required: false, example: "Clinician" },
+  { key: "organization", label: "Operator Organization", required: false, example: "PHPWS" },
+  { key: "comments", label: "Clinical Notes / Comments", required: false, example: "Active registry profile" },
+  { key: "record_date", label: "Registration Date (YYYY-MM-DD)", required: false, example: "2026-10-31" },
 ];
 
 export const TREATMENT_COLUMNS: ColumnDefinition[] = [
@@ -77,6 +101,7 @@ export const USER_COLUMNS: ColumnDefinition[] = [
 // Helper: Formula injection sanitizer
 export function sanitizeCellValue(val: any): any {
   if (val === null || val === undefined) return "";
+  if (Array.isArray(val)) return val.join(", ");
   if (typeof val === "number" || typeof val === "boolean") return val;
   const str = String(val).trim();
   if (/^[=+\-@\t\r]/.test(str)) {
@@ -324,4 +349,3 @@ function triggerDownloadBlob(blob: Blob, filename: string) {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
-

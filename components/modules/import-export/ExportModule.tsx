@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { Card, CardInset, Label, Badge, btnCls, btnGhost, useToast } from "@/components/ui";
 import { PatientRecord, TreatmentRecord, HistoryRecord } from "@/data/mockData";
 import { exportToExcelOrCsv } from "@/lib/fileProcessor";
+import { useAuth } from "@/context/auth";
 
 interface ExportModuleProps {
   patients: PatientRecord[];
@@ -19,17 +20,47 @@ const AVAILABLE_PATIENT_COLUMNS = [
   { key: "date_of_birth", label: "Date of Birth", defaultChecked: false },
   { key: "age", label: "Derived Age (Years)", defaultChecked: true },
   { key: "blood_group", label: "Blood Group", defaultChecked: true },
+  { key: "marital_status", label: "Marital Status", defaultChecked: false },
+  { key: "qualification", label: "Qualification", defaultChecked: false },
+  { key: "profession", label: "Profession", defaultChecked: false },
+  { key: "job_title", label: "Job Title", defaultChecked: false },
+  { key: "address", label: "Residential Address", defaultChecked: false },
+  { key: "city", label: "City", defaultChecked: true },
+  { key: "city_town", label: "City / Town", defaultChecked: false },
+  { key: "province", label: "Province", defaultChecked: true },
+  { key: "telephone", label: "Telephone Contact", defaultChecked: true },
+  { key: "emergency_number", label: "Emergency Phone", defaultChecked: false },
+  { key: "email", label: "Email Address", defaultChecked: false },
+  { key: "guardian_name", label: "Guardian / Father Name", defaultChecked: true },
+  { key: "guardian_cnic", label: "Guardian CNIC", defaultChecked: false },
+  { key: "household_other_bleeder", label: "Household Other Bleeder", defaultChecked: false },
+  { key: "household_patient_name", label: "Household Bleeder Name", defaultChecked: false },
+  { key: "household_relation", label: "Household Bleeder Relation", defaultChecked: false },
   { key: "diagnosis", label: "Diagnosis Category", defaultChecked: true },
-  { key: "severity", label: "Clinical Severity", defaultChecked: true },
+  { key: "registered_with_chapter", label: "Registered with Chapter", defaultChecked: false },
+  { key: "chapter_name", label: "Chapter Name", defaultChecked: false },
+  { key: "diagnostic_technique", label: "Diagnostic Technique", defaultChecked: false },
+  { key: "diagnostic_other", label: "Other Diagnostics", defaultChecked: false },
   { key: "baseline_factor_activity", label: "Baseline Factor Activity (%)", defaultChecked: true },
+  { key: "diagnostic_reason", label: "Diagnostic Reason", defaultChecked: false },
+  { key: "diagnostic_reason_other", label: "Other Diagnostic Reason", defaultChecked: false },
+  { key: "age_first_diagnosed", label: "Age First Diagnosed", defaultChecked: false },
+  { key: "severity", label: "Clinical Severity", defaultChecked: true },
   { key: "treatment_type", label: "Treatment Modality", defaultChecked: true },
   { key: "inhibitor_status", label: "Inhibitor Status", defaultChecked: true },
   { key: "bleeding_episodes_12m", label: "Bleeds in Last 12M", defaultChecked: false },
   { key: "treatment_products", label: "Products Used", defaultChecked: false },
-  { key: "city", label: "City", defaultChecked: true },
-  { key: "province", label: "Province", defaultChecked: true },
-  { key: "telephone", label: "Telephone Contact", defaultChecked: true },
-  { key: "email", label: "Email Address", defaultChecked: false },
+  { key: "hcv", label: "HCV Status", defaultChecked: true },
+  { key: "hiv", label: "HIV Status", defaultChecked: true },
+  { key: "hbv", label: "HBV Status", defaultChecked: true },
+  { key: "vaccinations", label: "Vaccinations", defaultChecked: false },
+  { key: "other_vaccinations", label: "Other Vaccinations", defaultChecked: false },
+  { key: "joint_deformity", label: "Joint Deformity", defaultChecked: false },
+  { key: "activity_level", label: "Activity Level", defaultChecked: false },
+  { key: "filled_by", label: "Form Filled By (Operator)", defaultChecked: false },
+  { key: "designation", label: "Operator Designation", defaultChecked: false },
+  { key: "organization", label: "Operator Organization", defaultChecked: false },
+  { key: "comments", label: "Clinical Notes / Comments", defaultChecked: false },
   { key: "record_date", label: "Registration Date", defaultChecked: true },
   { key: "status", label: "Account / Record Status", defaultChecked: true },
 ];
@@ -41,9 +72,10 @@ export default function ExportModule({
   onAddHistory,
 }: ExportModuleProps) {
   const { addToast } = useToast();
+  const { user } = useAuth();
 
   const [datasetType, setDatasetType] = useState<"patients" | "treatments">("patients");
-  const [format, setFormat] = useState<"csv" | "xlsx">("csv");
+  const [format, setFormat] = useState<"csv" | "xlsx">("xlsx");
   const [includeHeaders, setIncludeHeaders] = useState(true);
   const [sanitizeFormulas, setSanitizeFormulas] = useState(true);
   const [selectedCols, setSelectedCols] = useState<Record<string, boolean>>(
@@ -72,20 +104,6 @@ export default function ExportModule({
     setSelectedCols(
       AVAILABLE_PATIENT_COLUMNS.reduce((acc, col) => ({ ...acc, [col.key]: select }), {})
     );
-  };
-
-  // Safe escaping for CSV & Excel to prevent formula injection
-  const safeEscapeValue = (raw: any): string => {
-    if (raw == null || raw === undefined) return "";
-    let str = String(raw).trim();
-
-    // Prevent CSV/Excel formula injection (=, +, -, @, \t, \r)
-    if (sanitizeFormulas && /^([=+\-@\t\r])/.test(str)) {
-      str = "'" + str; // Prefix with apostrophe to force text interpretation
-    }
-
-    // Escape quotes for CSV
-    return `"${str.replace(/"/g, '""')}"`;
   };
 
   const handleExport = async () => {
@@ -131,7 +149,7 @@ export default function ExportModule({
         failed_count: 0,
         status: "Completed",
         timestamp: new Date().toISOString().slice(0, 16).replace("T", " "),
-        user: "Admin (Current Session)",
+        user: user?.name || user?.email || "Clinical Operator",
       };
       onAddHistory(historyItem);
 
@@ -178,24 +196,24 @@ export default function ExportModule({
             </p>
             <div className="flex gap-2">
               <button
-                onClick={() => setFormat("csv")}
-                className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                  format === "csv"
-                    ? "neu-btn bg-[#EAAA00] text-[#190617]"
+                onClick={() => setFormat("xlsx")}
+                className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                  format === "xlsx"
+                    ? "neu-btn bg-[#EAAA00] text-[#190617] font-extrabold shadow-sm"
                     : "neu-btn text-slate-600 dark:text-slate-300"
                 }`}
               >
-                CSV (.csv)
+                <span>📊 Excel (.xlsx)</span>
               </button>
               <button
-                onClick={() => setFormat("xlsx")}
-                className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                  format === "xlsx"
-                    ? "neu-btn bg-[#EAAA00] text-[#190617]"
+                onClick={() => setFormat("csv")}
+                className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                  format === "csv"
+                    ? "neu-btn bg-[#EAAA00] text-[#190617] font-extrabold shadow-sm"
                     : "neu-btn text-slate-600 dark:text-slate-300"
                 }`}
               >
-                Excel (.xlsx)
+                <span>📄 CSV (.csv)</span>
               </button>
             </div>
           </CardInset>

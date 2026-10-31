@@ -7,6 +7,11 @@ import {
   INITIAL_INJECTIONS,
 } from "@/data/mockData";
 import { OfflineQueueItem } from "@/lib/offlineQueue";
+import {
+  formatCNIC,
+  formatPakistanPhone,
+  normalizeTestResult,
+} from "@/lib/pakistanValidation";
 
 export interface DataServiceStatus {
   isLiveDb: boolean;
@@ -64,13 +69,26 @@ export function mapRowToPatient(row: any): PatientRecord {
     job_title: row.job_title || "",
     address: row.address || "",
     city: row.city || row.city_town || "",
+    city_town: row.city_town || row.city || "",
     province: row.province || "Punjab",
     telephone: row.telephone || "",
+    emergency_number: row.emergency_number || "",
     email: row.email || "",
     guardian_name: row.guardian_name || "",
+    guardian_cnic: row.guardian_cnic || "",
+    household_other_bleeder: row.household_other_bleeder ?? false,
+    household_patient_name: row.household_patient_name || "",
+    household_relation: row.household_relation || "",
     diagnosis: row.diagnosis || "Hemophilia A",
-    severity: (row.severity as any) || calculatedSeverity,
+    registered_with_chapter: row.registered_with_chapter ?? false,
+    chapter_name: row.chapter_name || "",
+    diagnostic_technique: row.diagnostic_technique || "Factor assay",
+    diagnostic_other: row.diagnostic_other || "",
     baseline_factor_activity: factor || 1.0,
+    diagnostic_reason: row.diagnostic_reason || "Bleeding symptoms",
+    diagnostic_reason_other: row.diagnostic_reason_other || "",
+    age_first_diagnosed: row.age_first_diagnosed != null ? Number(row.age_first_diagnosed) : null,
+    severity: (row.severity as any) || calculatedSeverity,
     treatment_type: row.treatment_type || "On-demand",
     inhibitor_status: row.inhibitor_status || "Negative",
     bleeding_episodes_12m: Number(row.bleeding_episodes_12m) || 0,
@@ -78,6 +96,20 @@ export function mapRowToPatient(row: any): PatientRecord {
     hcv: row.hcv || "Negative",
     hiv: row.hiv || "Negative",
     hbv: row.hbv || "Negative",
+    vaccinations: Array.isArray(row.vaccinations)
+      ? row.vaccinations
+      : typeof row.vaccinations === "string"
+        ? row.vaccinations.split(",").map((s: string) => s.trim())
+        : [],
+    other_vaccinations: row.other_vaccinations || "",
+    joint_deformity: row.joint_deformity || "None",
+    activity_level: row.activity_level || "Moderate",
+    filled_by: row.filled_by || "",
+    designation: row.designation || "",
+    organization: row.organization || "",
+    comments: row.comments || "",
+    created_at: row.created_at || "",
+    updated_at: row.updated_at || "",
     status: "active",
   };
 }
@@ -285,6 +317,131 @@ export async function getUsersFromDb(isLive: boolean): Promise<DbUserRecord[]> {
 }
 
 /**
+ * Helper to build a clean Supabase patient payload with all database columns
+ */
+function buildPatientPayload(p: any, fallbackName = "Unnamed Patient") {
+  const rawName =
+    p.patient_name ||
+    p["Patient Full Name"] ||
+    p["Patient Name"] ||
+    p["Full Name"] ||
+    p["Name"] ||
+    p["Full / Patient Name"] ||
+    p["patient_name"];
+
+  const patientName =
+    rawName && String(rawName).trim() !== ""
+      ? String(rawName).trim()
+      : fallbackName;
+
+  const rawCnic = p.cnic || p["CNIC"] || p["cnic"];
+  const cnicVal =
+    rawCnic && String(rawCnic).trim() !== ""
+      ? formatCNIC(String(rawCnic).trim())
+      : null;
+
+  const rawGuardianCnic =
+    p.guardian_cnic || p["Guardian CNIC"] || p["guardian_cnic"];
+  const guardianCnicVal =
+    rawGuardianCnic && String(rawGuardianCnic).trim() !== ""
+      ? formatCNIC(String(rawGuardianCnic).trim())
+      : null;
+
+  const rawPhone = p.telephone || p["Telephone"] || p["Phone"] || p["telephone"];
+  const phoneVal =
+    rawPhone && String(rawPhone).trim() !== ""
+      ? formatPakistanPhone(String(rawPhone).trim())
+      : null;
+
+  const rawEmerg =
+    p.emergency_number || p["Emergency Phone"] || p["emergency_number"];
+  const emergVal =
+    rawEmerg && String(rawEmerg).trim() !== ""
+      ? formatPakistanPhone(String(rawEmerg).trim())
+      : null;
+
+  const isHouseholdBleeder =
+    p.household_other_bleeder === true ||
+    p.household_other_bleeder === "yes" ||
+    p.household_other_bleeder === "true";
+
+  const isRegisteredChapter =
+    p.registered_with_chapter === true ||
+    p.registered_with_chapter === "yes" ||
+    p.registered_with_chapter === "true";
+
+  let vaccinationsArray: string[] | null = null;
+  if (Array.isArray(p.vaccinations)) {
+    vaccinationsArray = p.vaccinations;
+  } else if (typeof p.vaccinations === "string" && p.vaccinations.trim() !== "") {
+    vaccinationsArray = p.vaccinations
+      .split(",")
+      .map((s: string) => s.trim())
+      .filter(Boolean);
+  }
+
+  return {
+    patient_name: patientName,
+    date_of_birth: p.date_of_birth || null,
+    gender: p.gender || "Male",
+    marital_status: p.marital_status || "Single",
+    cnic: cnicVal,
+    blood_group: p.blood_group || "O+",
+    record_date: p.record_date || new Date().toISOString().slice(0, 10),
+    qualification: p.qualification || null,
+    profession: p.profession || null,
+    job_title: p.job_title || null,
+    address: p.address || null,
+    city: p.city || p.city_town || "Rawalpindi",
+    city_town: p.city_town || p.city || null,
+    province: p.province || "Punjab",
+    telephone: phoneVal,
+    emergency_number: emergVal,
+    email: p.email || null,
+    guardian_name: p.guardian_name || p["Guardian Name"] || null,
+    guardian_cnic: guardianCnicVal,
+    household_other_bleeder: isHouseholdBleeder,
+    household_patient_name: p.household_patient_name || null,
+    household_relation: p.household_relation || null,
+    diagnosis: p.diagnosis || "Hemophilia A",
+    registered_with_chapter: isRegisteredChapter,
+    chapter_name: p.chapter_name || null,
+    diagnostic_technique: p.diagnostic_technique || "Factor assay",
+    diagnostic_other: p.diagnostic_other || null,
+    baseline_factor_activity:
+      p.baseline_factor_activity != null && p.baseline_factor_activity !== ""
+        ? Number(p.baseline_factor_activity)
+        : 1.0,
+    diagnostic_reason: p.diagnostic_reason || "Bleeding symptoms",
+    diagnostic_reason_other: p.diagnostic_reason_other || null,
+    age_first_diagnosed:
+      p.age_first_diagnosed != null && p.age_first_diagnosed !== ""
+        ? Number(p.age_first_diagnosed)
+        : null,
+    treatment_type: p.treatment_type || "On-demand",
+    inhibitor_status: p.inhibitor_status
+      ? normalizeTestResult(p.inhibitor_status)
+      : "Negative",
+    bleeding_episodes_12m:
+      p.bleeding_episodes_12m != null && p.bleeding_episodes_12m !== ""
+        ? Number(p.bleeding_episodes_12m)
+        : 0,
+    treatment_products: p.treatment_products || null,
+    hcv: normalizeTestResult(p.hcv),
+    hiv: normalizeTestResult(p.hiv),
+    hbv: normalizeTestResult(p.hbv),
+    vaccinations: vaccinationsArray,
+    other_vaccinations: p.other_vaccinations || null,
+    joint_deformity: p.joint_deformity || "None",
+    activity_level: p.activity_level || "Moderate",
+    filled_by: p.filled_by || null,
+    designation: p.designation || null,
+    organization: p.organization || null,
+    comments: p.comments || null,
+  };
+}
+
+/**
  * Insert new patient into Supabase
  */
 export async function createPatientInDb(
@@ -296,34 +453,7 @@ export async function createPatientInDb(
   }
 
   try {
-    const payload = {
-      patient_name: p.patient_name,
-      date_of_birth: p.date_of_birth || null,
-      gender: p.gender,
-      marital_status: p.marital_status,
-      cnic: p.cnic || null,
-      blood_group: p.blood_group,
-      record_date: p.record_date,
-      qualification: p.qualification,
-      profession: p.profession,
-      job_title: p.job_title,
-      address: p.address,
-      city: p.city,
-      province: p.province,
-      telephone: p.telephone,
-      email: p.email || null,
-      guardian_name: p.guardian_name,
-      guardian_cnic: p.guardian_cnic || null,
-      diagnosis: p.diagnosis,
-      baseline_factor_activity: p.baseline_factor_activity,
-      treatment_type: p.treatment_type,
-      inhibitor_status: p.inhibitor_status,
-      bleeding_episodes_12m: p.bleeding_episodes_12m,
-      treatment_products: p.treatment_products,
-      hcv: p.hcv,
-      hiv: p.hiv,
-      hbv: p.hbv,
-    };
+    const payload = buildPatientPayload(p, "Unnamed Patient");
 
     const { data, error } = await supabase
       .from("patients")
@@ -341,6 +471,40 @@ export async function createPatientInDb(
 }
 
 /**
+ * Update existing patient in Supabase
+ */
+export async function updatePatientInDb(
+  p: PatientRecord,
+  isLive: boolean,
+): Promise<{ success: boolean; data?: PatientRecord; error?: string }> {
+  if (!isLive || !isSupabaseConfigured) {
+    return { success: true, data: p };
+  }
+
+  try {
+    const payload = {
+      ...buildPatientPayload(p, p.patient_name || "Updated Patient"),
+      updated_at: new Date().toISOString(),
+    };
+
+    const { data, error } = await supabase
+      .from("patients")
+      .update(payload)
+      .eq("patient_id", p.patient_id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return { success: true, data: mapRowToPatient(data) };
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err.message || "Failed to update patient in database",
+    };
+  }
+}
+
+/**
  * Bulk Insert Patients into Database
  */
 export async function bulkCreatePatientsInDb(
@@ -352,12 +516,40 @@ export async function bulkCreatePatientsInDb(
   data?: PatientRecord[];
   error?: string;
 }> {
+  // Filter out blank rows
+  const validPatients = (patients || []).filter((p: any) => {
+    if (!p) return false;
+    const name =
+      p.patient_name ||
+      p["Patient Full Name"] ||
+      p["Patient Name"] ||
+      p["Full Name"] ||
+      p["Name"] ||
+      p["Full / Patient Name"];
+    const cnic = p.cnic || p["CNIC"] || p["cnic"];
+    const phone = p.telephone || p["Telephone"] || p["Phone"] || p["telephone"];
+    return Boolean(
+      (name && String(name).trim() !== "") ||
+      (cnic && String(cnic).trim() !== "") ||
+      (phone && String(phone).trim() !== ""),
+    );
+  });
+
+  if (validPatients.length === 0) {
+    return {
+      success: false,
+      count: 0,
+      error: "No valid patient rows found to import.",
+    };
+  }
+
   if (!isLive || !isSupabaseConfigured) {
-    const fallback = patients.map((p, idx) => ({
+    const fallback = validPatients.map((p, idx) => ({
       ...p,
       patient_id: p.patient_id || Date.now() + idx,
       registration_no: p.registration_no || `H-${Date.now() + idx}`,
-      patient_name: p.patient_name || "Patient",
+      patient_name:
+        p.patient_name || (p as any)["Patient Full Name"] || `Patient ${idx + 1}`,
       date_of_birth: p.date_of_birth || "2000-01-01",
       age: p.age || 25,
       gender: p.gender || "Male",
@@ -384,41 +576,9 @@ export async function bulkCreatePatientsInDb(
   }
 
   try {
-    const payloads = patients.map((p) => ({
-      patient_name: p.patient_name,
-      date_of_birth: p.date_of_birth || null,
-      gender: p.gender || "Male",
-      marital_status: p.marital_status || "Single",
-      cnic: p.cnic && p.cnic.trim() !== "" ? p.cnic.trim() : null,
-      blood_group: p.blood_group || "O+",
-      record_date: p.record_date || new Date().toISOString().slice(0, 10),
-      qualification: p.qualification || null,
-      profession: p.profession || null,
-      job_title: p.job_title || null,
-      address: p.address || null,
-      city: p.city || "Rawalpindi",
-      province: p.province || "Punjab",
-      telephone: p.telephone || null,
-      email: p.email || null,
-      guardian_name: p.guardian_name || null,
-      guardian_cnic:
-        p.guardian_cnic && p.guardian_cnic.trim() !== ""
-          ? p.guardian_cnic.trim()
-          : null,
-      diagnosis: p.diagnosis || "Hemophilia A",
-      baseline_factor_activity: p.baseline_factor_activity
-        ? Number(p.baseline_factor_activity)
-        : 1.0,
-      treatment_type: p.treatment_type || "On-demand",
-      inhibitor_status: p.inhibitor_status || "Negative",
-      bleeding_episodes_12m: p.bleeding_episodes_12m
-        ? Number(p.bleeding_episodes_12m)
-        : 0,
-      treatment_products: p.treatment_products || null,
-      hcv: p.hcv || "Negative",
-      hiv: p.hiv || "Negative",
-      hbv: p.hbv || "Negative",
-    }));
+    const payloads = validPatients.map((p, idx) =>
+      buildPatientPayload(p, `Imported Patient ${idx + 1}`),
+    );
 
     const { data, error } = await supabase
       .from("patients")

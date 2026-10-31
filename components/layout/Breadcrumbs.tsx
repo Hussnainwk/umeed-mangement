@@ -165,7 +165,7 @@ export default memo(function Breadcrumbs({ patientName, patientRegNo }: Breadcru
       </ol>
 
       <div className="hidden sm:flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400">
-        <span>PHPWS Hemophilia Registry</span>
+        <span>UWF Hemophilia Registry</span>
         <span className="text-slate-300 dark:text-slate-600">•</span>
         <span className="font-mono text-[#EAAA00] font-semibold">DataMangement v2.5</span>
       </div>

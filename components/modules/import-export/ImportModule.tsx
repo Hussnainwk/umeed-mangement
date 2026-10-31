@@ -6,6 +6,14 @@ import { PatientRecord, HistoryRecord } from "@/data/mockData";
 import { detectAndParseFile, downloadSampleTemplate, SupportedFormat } from "@/lib/fileProcessor";
 import { enqueueOfflineUpload, useOnlineStatus } from "@/lib/offlineQueue";
 import { FileSpreadsheet, FileText, WifiOff } from "lucide-react";
+import { useAuth } from "@/context/auth";
+import {
+  validateCNIC,
+  validatePakistanPhone,
+  formatCNIC,
+  formatPakistanPhone,
+  normalizeTestResult,
+} from "@/lib/pakistanValidation";
 
 interface ParsedRow {
   rowNumber: number;
@@ -23,13 +31,13 @@ interface ImportModuleProps {
 
 const EXPECTED_COLUMNS = [
   { key: "patient_name", label: "Full / Patient Name", required: true },
-  { key: "cnic", label: "CNIC / Identity #", required: false },
+  { key: "cnic", label: "CNIC (13 digits: XXXXX-XXXXXXX-X)", required: false },
   { key: "gender", label: "Gender", required: false },
   { key: "date_of_birth", label: "Date of Birth (YYYY-MM-DD)", required: false },
   { key: "diagnosis", label: "Diagnosis (e.g. Hemophilia A)", required: false },
   { key: "severity", label: "Severity (Severe / Moderate / Mild)", required: false },
   { key: "city", label: "City", required: false },
-  { key: "telephone", label: "Phone / Telephone", required: false },
+  { key: "telephone", label: "Mobile Phone (11 digits local / 12 intl)", required: false },
   { key: "email", label: "Email Address", required: false },
 ];
 
@@ -40,6 +48,7 @@ export default function ImportModule({
   onAddHistory,
 }: ImportModuleProps) {
   const { addToast } = useToast();
+  const { user } = useAuth();
   const isOnline = useOnlineStatus();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -138,6 +147,30 @@ export default function ImportModule({
       // Name required
       if (!mappedData.patient_name) {
         errors.push("Missing required field: Full / Patient Name");
+      }
+
+      // CNIC check (Pakistan standard: 13 digits: XXXXX-XXXXXXX-X)
+      if (mappedData.cnic) {
+        const cnicRes = validateCNIC(mappedData.cnic);
+        if (!cnicRes.isValid) {
+          errors.push(
+            `Invalid CNIC "${mappedData.cnic}": Must be 13 digits (format: XXXXX-XXXXXXX-X, e.g. 35202-1234567-1)`
+          );
+        } else {
+          mappedData.cnic = cnicRes.formatted;
+        }
+      }
+
+      // Telephone check (Local: 11 digits, Intl: 12 digits)
+      if (mappedData.telephone) {
+        const phoneRes = validatePakistanPhone(mappedData.telephone);
+        if (!phoneRes.isValid) {
+          errors.push(
+            `Invalid Mobile "${mappedData.telephone}": Must be 11 digits local (03XX-XXXXXXX) or 12 digits intl (+92 3XX XXXXXXX / 923XXXXXXXXX)`
+          );
+        } else {
+          mappedData.telephone = phoneRes.formatted;
+        }
       }
 
       // Email check if provided
@@ -266,7 +299,7 @@ export default function ImportModule({
       failed_count: parsedRows.length - newPatients.length,
       status: parsedRows.length === newPatients.length ? "Completed" : "Partial",
       timestamp: new Date().toISOString().slice(0, 16).replace("T", " "),
-      user: "Admin (Current Session)",
+      user: user?.name || user?.email || "Admin Operator",
     };
     onAddHistory(historyItem);
 
@@ -278,57 +311,18 @@ export default function ImportModule({
     );
   };
 
-  // Sample Template Downloads
-  const downloadSampleTemplate = (format: "csv" | "xlsx") => {
-    const sampleHeaders = [
-      "patient_name",
-      "cnic",
-      "gender",
-      "date_of_birth",
-      "diagnosis",
-      "severity",
-      "city",
-      "telephone",
-      "email",
-    ];
-    const sampleData = [
-      [
-        "Ali Raza",
-        "35201-1234567-1",
-        "Male",
-        "2002-04-15",
-        "Hemophilia A",
-        "Severe",
-        "Lahore",
-        "+92 300 1112233",
-        "ali.raza@example.com",
-      ],
-      [
-        "Sara Khan",
-        "42101-9876543-2",
-        "Female",
-        "2008-08-20",
-        "von Willebrand disease",
-        "Moderate",
-        "Karachi",
-        "+92 321 4445566",
-        "sara.khan@example.com",
-      ],
-    ];
-
-    const csvContent =
-      sampleHeaders.join(",") + "\n" + sampleData.map((row) => row.join(",")).join("\n");
-
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute("download", `befal_sample_import_template.${format}`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    addToast("info", "Template Downloaded", `Sample ${format.toUpperCase()} template downloaded.`);
+  // Sample Template Downloads using real Excel (.xlsx) / CSV generator
+  const handleDownloadSample = async (fmt: "csv" | "xlsx") => {
+    try {
+      await downloadSampleTemplate("patients", fmt);
+      addToast(
+        "info",
+        "Template Downloaded",
+        `Sample ${fmt.toUpperCase()} template downloaded with standard Pakistan CNIC and phone formats.`
+      );
+    } catch (err: any) {
+      addToast("error", "Download Failed", err.message || "Failed to download template");
+    }
   };
 
   return (
@@ -347,16 +341,20 @@ export default function ImportModule({
         action={
           <div className="flex items-center gap-2">
             <button
-              onClick={() => downloadSampleTemplate("csv")}
-              className="neu-btn px-3 py-1.5 rounded-xl text-xs font-semibold text-[#3A0F34] dark:text-[#f6f1f7] hover:text-[#EAAA00] cursor-pointer"
+              onClick={() => handleDownloadSample("xlsx")}
+              className="neu-btn px-3 py-1.5 rounded-xl text-xs font-semibold text-emerald-700 dark:text-emerald-400 hover:text-[#EAAA00] cursor-pointer flex items-center gap-1.5"
+              title="Download Excel spreadsheet template (.xlsx)"
             >
-              📥 Download Sample CSV
+              <FileSpreadsheet size={13} />
+              <span>📥 Sample Excel (.xlsx)</span>
             </button>
             <button
-              onClick={() => downloadSampleTemplate("xlsx")}
-              className="neu-btn px-3 py-1.5 rounded-xl text-xs font-semibold text-[#3A0F34] dark:text-[#f6f1f7] hover:text-[#EAAA00] cursor-pointer"
+              onClick={() => handleDownloadSample("csv")}
+              className="neu-btn px-3 py-1.5 rounded-xl text-xs font-semibold text-amber-700 dark:text-amber-400 hover:text-[#EAAA00] cursor-pointer flex items-center gap-1.5"
+              title="Download comma-separated text template (.csv)"
             >
-              📥 Download Sample Excel
+              <FileText size={13} />
+              <span>📥 Sample CSV (.csv)</span>
             </button>
           </div>
         }

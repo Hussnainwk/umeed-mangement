@@ -28,6 +28,7 @@ interface PatientListProps {
   setSelectedIds: React.Dispatch<React.SetStateAction<number[]>>;
   onBulkDelete: () => void;
   onSelectDeleteCandidate: (patient: PatientRecord) => void;
+  onEditPatient?: (patient: PatientRecord) => void;
   isLiveDb?: boolean;
   onPatientsImported?: (newPatients: PatientRecord[]) => void;
 }
@@ -47,6 +48,7 @@ export default function PatientList({
   setSelectedIds,
   onBulkDelete,
   onSelectDeleteCandidate,
+  onEditPatient,
   isLiveDb = true,
   onPatientsImported,
 }: PatientListProps) {
@@ -252,6 +254,20 @@ export default function PatientList({
                     </td>
                     <td className="px-3 text-right whitespace-nowrap">
                       <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          onClick={() => {
+                            if (onEditPatient) {
+                              onEditPatient(p);
+                            } else {
+                              setSelectedPatientId(p.patient_id);
+                              setActiveView("patients_edit");
+                            }
+                          }}
+                          className="neu-btn px-2.5 py-1 rounded-lg text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-[#EAAA00] cursor-pointer"
+                          title="Edit Patient Record"
+                        >
+                          ✏️ Edit
+                        </button>
                         <button
                           onClick={() => {
                             setSelectedPatientId(p.patient_id);

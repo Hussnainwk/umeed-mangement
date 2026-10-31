@@ -46,6 +46,7 @@ export type AppView =
   | "dashboard"
   | "patients"
   | "patients_new"
+  | "patients_edit"
   | "patient_details"
   | "treatments"
   | "injections"
@@ -61,6 +62,7 @@ export const VALID_VIEWS: AppView[] = [
   "dashboard",
   "patients",
   "patients_new",
+  "patients_edit",
   "patient_details",
   "treatments",
   "injections",

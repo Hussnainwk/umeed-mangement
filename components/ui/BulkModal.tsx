@@ -13,6 +13,7 @@ import {
   Info,
 } from "lucide-react";
 import { Modal, Badge, btnCls, btnSecondary, useToast } from "@/components/ui";
+import { useAuth } from "@/context/auth";
 import {
   detectAndParseFile,
   exportToExcelOrCsv,
@@ -29,6 +30,13 @@ import {
   useOnlineStatus,
   OfflineEntityType,
 } from "@/lib/offlineQueue";
+import {
+  validateCNIC,
+  validatePakistanPhone,
+  formatCNIC,
+  formatPakistanPhone,
+  normalizeTestResult,
+} from "@/lib/pakistanValidation";
 import {
   bulkCreatePatientsInDb,
   bulkCreateTreatmentsInDb,
@@ -57,6 +65,7 @@ export function BulkUploadModal({
   onSuccess,
 }: BulkUploadModalProps) {
   const { addToast } = useToast();
+  const { user } = useAuth();
   const isOnline = useOnlineStatus();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -106,7 +115,65 @@ export function BulkUploadModal({
         setErrorMsg("The selected file contains no readable data rows.");
         setParsedRows([]);
       } else {
-        setParsedRows(result.rows);
+        // If patients entity, format and validate Pakistani CNICs and phone numbers
+        if (entityType === "patients") {
+          let cnicWarnings = 0;
+          let phoneWarnings = 0;
+
+          const cleanedRows = result.rows.map((row) => {
+            const updated = { ...row };
+
+            // CNIC validation (13 digits: XXXXX-XXXXXXX-X)
+            if (updated.cnic) {
+              const check = validateCNIC(updated.cnic);
+              if (check.isValid) {
+                updated.cnic = check.formatted;
+              } else {
+                cnicWarnings++;
+              }
+            }
+
+            // Guardian CNIC validation (13 digits: XXXXX-XXXXXXX-X)
+            if (updated.guardian_cnic) {
+              const check = validateCNIC(updated.guardian_cnic);
+              if (check.isValid) {
+                updated.guardian_cnic = check.formatted;
+              }
+            }
+
+            // Telephone validation (Local: 11 digits, Intl: 12 digits)
+            if (updated.telephone) {
+              const check = validatePakistanPhone(updated.telephone);
+              if (check.isValid) {
+                updated.telephone = check.formatted;
+              } else {
+                phoneWarnings++;
+              }
+            }
+
+            // Test result normalization (Positive, Negative, Not tested)
+            if (updated.hcv) updated.hcv = normalizeTestResult(updated.hcv);
+            if (updated.hiv) updated.hiv = normalizeTestResult(updated.hiv);
+            if (updated.hbv) updated.hbv = normalizeTestResult(updated.hbv);
+            if (updated.inhibitor_status) {
+              updated.inhibitor_status = normalizeTestResult(updated.inhibitor_status);
+            }
+
+            return updated;
+          });
+
+          setParsedRows(cleanedRows);
+
+          if (cnicWarnings > 0 || phoneWarnings > 0) {
+            addToast(
+              "info",
+              "Validation Notice",
+              `${cnicWarnings > 0 ? `${cnicWarnings} CNIC(s) need 13 digits. ` : ""}${phoneWarnings > 0 ? `${phoneWarnings} phone number(s) need 11 digits (local) or 12 digits (intl).` : ""}`
+            );
+          }
+        } else {
+          setParsedRows(result.rows);
+        }
       }
     } catch (err: any) {
       setErrorMsg(err.message || "Failed to parse file.");
@@ -164,7 +231,7 @@ export function BulkUploadModal({
           success_count: dbResult.count || parsedRows.length,
           failed_count: 0,
           status: "Completed",
-          operator: "Clinical Operator",
+          operator: user?.name || user?.email || "Clinical Operator",
         });
 
         addToast(
@@ -430,6 +497,7 @@ export function BulkDownloadModal({
   selectedIds = [],
 }: BulkDownloadModalProps) {
   const { addToast } = useToast();
+  const { user } = useAuth();
   const [format, setFormat] = useState<SupportedFormat>("xlsx");
   const [downloadMode, setDownloadMode] = useState<"all" | "selected">("all");
   const [isExporting, setIsExporting] = useState(false);
@@ -499,7 +567,7 @@ export function BulkDownloadModal({
         format,
         records_count: recordsToExport.length,
         status: "Completed",
-        operator: "Clinical Operator",
+        operator: user?.name || user?.email || "Clinical Operator",
       });
 
       addToast(

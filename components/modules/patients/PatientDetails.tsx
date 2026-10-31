@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import { Card, CardInset, Badge, btnSecondary, btnGhost, useToast } from "@/components/ui";
+import { Card, CardInset, Badge, btnCls, btnSecondary, btnGhost, useToast } from "@/components/ui";
 import { PatientRecord, TreatmentRecord } from "@/data/mockData";
 import { SECTIONS } from "@/data/fields";
 import { useNav } from "@/context/providers";
@@ -12,6 +12,7 @@ interface PatientDetailsProps {
   patients: PatientRecord[];
   treatments: TreatmentRecord[];
   onAddTreatment: (treatment: TreatmentRecord) => void;
+  onEditPatient?: (patient: PatientRecord) => void;
 }
 
 export default function PatientDetails({
@@ -19,6 +20,7 @@ export default function PatientDetails({
   patients,
   treatments,
   onAddTreatment,
+  onEditPatient,
 }: PatientDetailsProps) {
   const { setActiveView } = useNav();
   const { addToast } = useToast();
@@ -62,12 +64,23 @@ export default function PatientDetails({
         }
         subtitle={`${patient.age} years old • ${patient.gender} • Blood Group: ${patient.blood_group} • Registered: ${patient.record_date}`}
         action={
-          <div className="flex gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => {
+                if (onEditPatient) onEditPatient(patient);
+                else setActiveView("patients_edit");
+              }}
+              className={`${btnCls} flex items-center gap-1.5`}
+              title="Edit and update all clinical and demographic fields for this patient"
+            >
+              <span>✏️</span>
+              <span>Edit Record</span>
+            </button>
             <button
               onClick={() => setActiveView("patients")}
               className={btnSecondary}
             >
-              &larr; Back to Patients List
+              &larr; Back to Registry
             </button>
             <button
               onClick={handleExportSummary}

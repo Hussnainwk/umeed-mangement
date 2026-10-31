@@ -40,7 +40,7 @@ export const SECTIONS: { title: string; fields: Field[] }[] = [
   ]},
   { title: "Diagnosis", fields: [
     { key: "diagnosis", label: "Diagnosis", type: "select", options: ["Hemophilia A", "Hemophilia B", "von Willebrand disease", "Factor VII deficiency", "Factor XIII deficiency", "Glanzmann thrombasthenia", "Other"] },
-    { key: "registered_with_chapter", label: "Registered with a PHPWS chapter / HTC?", type: "bool" },
+    { key: "registered_with_chapter", label: "Registered with a UWF chapter / HTC?", type: "bool" },
     { key: "chapter_name", label: "Chapter / HTC name", when: ["registered_with_chapter", "yes"] },
     { key: "diagnostic_technique", label: "Diagnostic technique", type: "select", options: ["Factor assay", "Genetic testing", "Clinical", "Other"] },
     { key: "diagnostic_other", label: "Other diagnostics", when: ["diagnostic_technique", "Other"] },
@@ -51,7 +51,7 @@ export const SECTIONS: { title: string; fields: Field[] }[] = [
   ]},
   { title: "Treatment", fields: [
     { key: "treatment_type", label: "Treatment type", type: "select", options: ["On-demand", "Prophylaxis", "None"] },
-    { key: "inhibitor_status", label: "Current inhibitor status", type: "select", options: ["Positive", "Negative", "Unknown"] },
+    { key: "inhibitor_status", label: "Current inhibitor status", type: "select", options: PNT },
     { key: "bleeding_episodes_12m", label: "Bleeding episodes in last 12 months", type: "number" },
     { key: "treatment_products", label: "Treatment products used mostly in last 12 months" },
   ]},

@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { SECTIONS, Field } from "@/data/fields";
 import {
   btnCls,
@@ -15,7 +15,15 @@ import {
 } from "@/components/ui";
 import { Sparkles, Upload, Download } from "lucide-react";
 import { useNav } from "@/context/providers";
+import { useAuth } from "@/context/auth";
 import { PatientRecord } from "@/data/mockData";
+import {
+  formatCNIC,
+  validateCNIC,
+  formatPakistanPhone,
+  validatePakistanPhone,
+  extractDigits,
+} from "@/lib/pakistanValidation";
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -46,6 +54,7 @@ export default function PatientForm({
 }: PatientFormProps) {
   const { setActiveView, setSelectedPatientId } = useNav();
   const { addToast } = useToast();
+  const { user } = useAuth();
 
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showDownloadModal, setShowDownloadModal] = useState(false);
@@ -55,7 +64,17 @@ export default function PatientForm({
       return {
         ...initialData,
         household_other_bleeder:
-          initialData.bleeding_episodes_12m > 0 ? "yes" : "no",
+          initialData.household_other_bleeder === true ||
+          initialData.household_other_bleeder === "yes" ||
+          (initialData.bleeding_episodes_12m != null &&
+            initialData.bleeding_episodes_12m > 0)
+            ? "yes"
+            : "no",
+        registered_with_chapter:
+          initialData.registered_with_chapter === true ||
+          initialData.registered_with_chapter === "yes"
+            ? "yes"
+            : "no",
       };
     }
     return {
@@ -63,6 +82,8 @@ export default function PatientForm({
       gender: "Male",
       marital_status: "Single",
       province: "Punjab",
+      city: "Rawalpindi",
+      city_town: "Rawalpindi",
       diagnosis: "Hemophilia A",
       treatment_type: "On-demand",
       inhibitor_status: "Negative",
@@ -71,8 +92,35 @@ export default function PatientForm({
       hbv: "Negative",
       joint_deformity: "None",
       activity_level: "Moderate",
+      filled_by: "",
+      designation: "",
+      organization: "Pakistan Hemophilia Patients Welfare Society",
     };
   });
+
+  // Automatically pull operator name & details from the logged-in user during registration
+  useEffect(() => {
+    if (!initialData && user) {
+      setV((prev) => ({
+        ...prev,
+        filled_by:
+          prev.filled_by || user.name || user.email || "Clinical Officer",
+        designation:
+          prev.designation ||
+          (user.role === "super_admin"
+            ? "Lead Administrator"
+            : user.role === "admin"
+              ? "Clinical Officer"
+              : user.role === "manager"
+                ? "HTC Manager"
+                : "Clinician"),
+        organization:
+          prev.organization ||
+          user.department ||
+          "Pakistan Hemophilia Patients Welfare Society",
+      }));
+    }
+  }, [user, initialData]);
 
   // Track expanded/minimized state for each section
   // Default: First section (Personal) expanded, others minimized for cleaner step-by-step UX
@@ -340,6 +388,66 @@ export default function PatientForm({
       return;
     }
 
+    // 1. Validate CNIC (13 digits: XXXXX-XXXXXXX-X)
+    if (v.cnic && v.cnic.trim() !== "") {
+      const cnicCheck = validateCNIC(v.cnic);
+      if (!cnicCheck.isValid) {
+        addToast(
+          "error",
+          "Invalid Patient CNIC (13 Digits)",
+          cnicCheck.error ||
+            "CNIC must be 13 digits (format: XXXXX-XXXXXXX-X, e.g. 35202-1234567-1).",
+        );
+        setExpandedSections((prev) => ({ ...prev, Personal: true }));
+        return;
+      }
+    }
+
+    // 2. Validate Guardian CNIC (13 digits: XXXXX-XXXXXXX-X)
+    if (v.guardian_cnic && v.guardian_cnic.trim() !== "") {
+      const gCnicCheck = validateCNIC(v.guardian_cnic);
+      if (!gCnicCheck.isValid) {
+        addToast(
+          "error",
+          "Invalid Guardian CNIC (13 Digits)",
+          gCnicCheck.error ||
+            "Guardian CNIC must be 13 digits (format: XXXXX-XXXXXXX-X, e.g. 35202-1234567-1).",
+        );
+        setExpandedSections((prev) => ({ ...prev, Contact: true }));
+        return;
+      }
+    }
+
+    // 3. Validate Telephone (Local: 11 digits, Intl: 12 digits)
+    if (v.telephone && v.telephone.trim() !== "") {
+      const phoneCheck = validatePakistanPhone(v.telephone);
+      if (!phoneCheck.isValid) {
+        addToast(
+          "error",
+          "Invalid Telephone Number",
+          phoneCheck.error ||
+            "Mobile number must be 11 digits local (03XX-XXXXXXX) or 12 digits international (+92 3XX XXXXXXX).",
+        );
+        setExpandedSections((prev) => ({ ...prev, Contact: true }));
+        return;
+      }
+    }
+
+    // 4. Validate Emergency Number (Local: 11 digits, Intl: 12 digits)
+    if (v.emergency_number && v.emergency_number.trim() !== "") {
+      const emergCheck = validatePakistanPhone(v.emergency_number);
+      if (!emergCheck.isValid) {
+        addToast(
+          "error",
+          "Invalid Emergency Contact",
+          emergCheck.error ||
+            "Emergency number must be 11 digits local (03XX-XXXXXXX) or 12 digits international (+92 3XX XXXXXXX).",
+        );
+        setExpandedSections((prev) => ({ ...prev, Contact: true }));
+        return;
+      }
+    }
+
     setIsSubmitting(true);
 
     setTimeout(() => {
@@ -350,34 +458,61 @@ export default function PatientForm({
       const newRecord: PatientRecord = {
         patient_id: generatedId,
         registration_no: regNo,
-        patient_name: v.patient_name,
-        date_of_birth: v.date_of_birth || "2000-01-01",
+        patient_name: v.patient_name.trim(),
+        date_of_birth: v.date_of_birth || null,
         age: v.date_of_birth
-          ? 2024 - parseInt(v.date_of_birth.slice(0, 4))
+          ? Math.max(
+              0,
+              new Date().getFullYear() -
+                parseInt(v.date_of_birth.slice(0, 4), 10),
+            )
           : 24,
         gender: v.gender || "Male",
         marital_status: v.marital_status || "Single",
-        cnic: v.cnic || "",
+        cnic: v.cnic ? formatCNIC(v.cnic) : "",
         blood_group: v.blood_group || "O+",
         record_date: v.record_date || today(),
         qualification: v.qualification || "Unspecified",
         profession: v.profession || "Unspecified",
         job_title: v.job_title || "Unspecified",
         address: v.address || "Local Address",
-        city: v.city || "Rawalpindi",
+        city: v.city || v.city_town || "Rawalpindi",
+        city_town: v.city_town || v.city || "Rawalpindi",
         province: v.province || "Punjab",
-        telephone: v.telephone || "+92 300 1234567",
+        telephone: v.telephone ? formatPakistanPhone(v.telephone) : "",
+        emergency_number: v.emergency_number
+          ? formatPakistanPhone(v.emergency_number)
+          : "",
         email: v.email || "",
-        guardian_name: v.guardian_name || "Guardian",
-        guardian_cnic: v.guardian_cnic || undefined,
+        guardian_name: v.guardian_name || "",
+        guardian_cnic: v.guardian_cnic
+          ? formatCNIC(v.guardian_cnic)
+          : undefined,
+        household_other_bleeder:
+          v.household_other_bleeder === "yes" ||
+          v.household_other_bleeder === true,
+        household_patient_name: v.household_patient_name || "",
+        household_relation: v.household_relation || "",
         diagnosis: v.diagnosis || "Hemophilia A",
+        registered_with_chapter:
+          v.registered_with_chapter === "yes" ||
+          v.registered_with_chapter === true,
+        chapter_name: v.chapter_name || "",
+        diagnostic_technique: v.diagnostic_technique || "Factor assay",
+        diagnostic_other: v.diagnostic_other || "",
+        baseline_factor_activity: Number(v.baseline_factor_activity) || 1.2,
+        diagnostic_reason: v.diagnostic_reason || "Bleeding symptoms",
+        diagnostic_reason_other: v.diagnostic_reason_other || "",
+        age_first_diagnosed:
+          v.age_first_diagnosed != null && v.age_first_diagnosed !== ""
+            ? Number(v.age_first_diagnosed)
+            : null,
         severity:
           Number(v.baseline_factor_activity) < 1
             ? "Severe"
             : Number(v.baseline_factor_activity) <= 5
               ? "Moderate"
               : "Mild",
-        baseline_factor_activity: Number(v.baseline_factor_activity) || 1.2,
         treatment_type: v.treatment_type || "On-demand",
         inhibitor_status: v.inhibitor_status || "Negative",
         bleeding_episodes_12m: Number(v.bleeding_episodes_12m) || 0,
@@ -385,6 +520,20 @@ export default function PatientForm({
         hcv: v.hcv || "Negative",
         hiv: v.hiv || "Negative",
         hbv: v.hbv || "Negative",
+        vaccinations: Array.isArray(v.vaccinations) ? v.vaccinations : [],
+        other_vaccinations: v.other_vaccinations || "",
+        joint_deformity: v.joint_deformity || "None",
+        activity_level: v.activity_level || "Moderate",
+        filled_by:
+          v.filled_by || user?.name || user?.email || "Clinical Operator",
+        designation:
+          v.designation ||
+          (user?.role === "super_admin" ? "Lead Administrator" : "Clinician"),
+        organization:
+          v.organization ||
+          user?.department ||
+          "Pakistan Hemophilia Patients Welfare Society",
+        comments: v.comments || "",
         status: "active",
       };
 
@@ -674,6 +823,119 @@ export default function PatientForm({
                               onChange={(e) => set(f.key, e.target.value)}
                               placeholder={`Enter ${f.label.toLowerCase()}...`}
                             />
+                          ) : f.key === "cnic" || f.key === "guardian_cnic" ? (
+                            <div className="space-y-1">
+                              <input
+                                type="text"
+                                className={inputCls}
+                                value={v[f.key] ?? ""}
+                                maxLength={15}
+                                onChange={(e) =>
+                                  set(f.key, formatCNIC(e.target.value))
+                                }
+                                placeholder="35202-1234567-1"
+                                required={f.required}
+                              />
+                              {(() => {
+                                const val = v[f.key] ?? "";
+                                const digits = extractDigits(val);
+                                if (!val) {
+                                  return (
+                                    <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                                      Pakistan CNIC: 13 digits (Format:{" "}
+                                      <span className="font-mono">
+                                        XXXXX-XXXXXXX-X
+                                      </span>
+                                      )
+                                    </p>
+                                  );
+                                }
+                                if (digits.length === 13) {
+                                  return (
+                                    <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
+                                      <span>✓</span>
+                                      <span>
+                                        Valid 13-digit Pakistani CNIC (
+                                        {digits.length}/13)
+                                      </span>
+                                    </p>
+                                  );
+                                }
+                                return (
+                                  <p className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold flex items-center gap-1">
+                                    <span>⚠️</span>
+                                    <span>
+                                      {digits.length}/13 digits (Need{" "}
+                                      {13 - digits.length} more)
+                                    </span>
+                                  </p>
+                                );
+                              })()}
+                            </div>
+                          ) : f.key === "telephone" ||
+                            f.key === "emergency_number" ? (
+                            <div className="space-y-1">
+                              <input
+                                type="text"
+                                className={inputCls}
+                                value={v[f.key] ?? ""}
+                                onChange={(e) => set(f.key, e.target.value)}
+                                onBlur={(e) => {
+                                  const formatted = formatPakistanPhone(
+                                    e.target.value,
+                                  );
+                                  if (formatted !== e.target.value) {
+                                    set(f.key, formatted);
+                                  }
+                                }}
+                                placeholder="0300-1234567 or +92 300 1234567"
+                                required={f.required}
+                              />
+                              {(() => {
+                                const val = v[f.key] ?? "";
+                                const check = validatePakistanPhone(val);
+                                const digits = extractDigits(val);
+                                if (!val) {
+                                  return (
+                                    <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                                      Local: 11 digits (
+                                      <span className="font-mono">
+                                        0300-1234567
+                                      </span>
+                                      ) · Intl: 12 digits (
+                                      <span className="font-mono">
+                                        +92 300 1234567
+                                      </span>
+                                      )
+                                    </p>
+                                  );
+                                }
+                                if (check.isValid) {
+                                  return (
+                                    <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
+                                      <span>✓</span>
+                                      <span>
+                                        Valid{" "}
+                                        {check.type === "local"
+                                          ? "11-digit Local"
+                                          : "12-digit International"}{" "}
+                                        Mobile ({check.digitsCount} digits)
+                                      </span>
+                                    </p>
+                                  );
+                                }
+                                return (
+                                  <p className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold flex items-center gap-1">
+                                    <span>⚠️</span>
+                                    <span>
+                                      {digits.length} digits · Requires 11
+                                      digits (Local 03XX) or 12 digits (Intl
+                                      923XX)
+                                    </span>
+                                  </p>
+                                );
+                              })()}
+                            </div>
                           ) : (
                             <input
                               type={f.type ?? "text"}
@@ -736,7 +998,7 @@ export default function PatientForm({
       {/* 3. Global Action Footer */}
       <div className="flex flex-wrap items-center justify-between gap-3 p-4 neu-card rounded-2xl">
         <div className="text-xs text-slate-500">
-          Enrolling into PHPWS Hemophilia Clinical Registry database
+          Enrolling into UWF Hemophilia Clinical Registry database
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <button

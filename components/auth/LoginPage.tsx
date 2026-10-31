@@ -51,7 +51,9 @@ function AuthInput({
         className="w-full rounded-xl neu-inset bg-[#d8dee3] dark:bg-[#180a1a] pl-10 pr-10 py-3 text-sm text-[#3A0F34] dark:text-[#f6f1f7] placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-[#EAAA00] transition-all disabled:opacity-50"
       />
       {suffix && (
-        <span className="absolute right-3.5 top-1/2 -translate-y-1/2">{suffix}</span>
+        <span className="absolute right-3.5 top-1/2 -translate-y-1/2">
+          {suffix}
+        </span>
       )}
     </div>
   );
@@ -85,16 +87,19 @@ export default function LoginPage() {
       if (result.error) {
         setError(result.error);
       } else {
-        addToast("success", "Access Granted", "Welcome to UMEED Clinical Registry.");
+        addToast(
+          "success",
+          "Access Granted",
+          "Welcome to UMEED Clinical Registry.",
+        );
       }
     },
-    [email, password, signIn, addToast]
+    [email, password, signIn, addToast],
   );
 
   return (
     <div className="min-h-screen bg-[#DDE3E8] dark:bg-[#150917] flex items-center justify-center p-4 transition-colors duration-300">
       <div className="w-full max-w-md space-y-5 animate-in fade-in zoom-in-95 duration-300">
-
         {/* Brand Header */}
         <div className="text-center space-y-1">
           <div className="flex items-center justify-center mb-3">
@@ -114,7 +119,7 @@ export default function LoginPage() {
             UMEED Registry
           </h1>
           <p className="text-xs text-slate-500 dark:text-[#bdaec2]">
-            Hemophilia Clinical Registry &amp; Intelligence — PHPWS
+            Hemophilia Clinical Registry &amp; Intelligence — UWF
           </p>
         </div>
 
@@ -131,7 +136,7 @@ export default function LoginPage() {
               <>
                 <Wifi size={13} className="flex-shrink-0" />
                 <Database size={13} className="flex-shrink-0" />
-                <span>Supabase Live DB Connected</span>
+                <span> Live DB Connected</span>
               </>
             ) : (
               <>
@@ -147,14 +152,13 @@ export default function LoginPage() {
 
         {/* Auth Form Card */}
         <div className="neu-card p-6 border border-white/60 dark:border-[#54194c]/50">
-
           {/* Secure Access Banner */}
           <div className="flex items-center gap-2.5 p-3 rounded-xl neu-inset mb-5 text-[#3A0F34] dark:text-[#f6f1f7]">
             <LockKeyhole size={16} className="text-[#EAAA00] flex-shrink-0" />
             <div className="text-xs">
-              <span className="font-bold">Restricted Clinical Access</span>
+              <span className="font-bold">Restricted Access</span>
               <p className="text-[11px] text-slate-500 dark:text-[#bdaec2]">
-                Only authorized database users can sign in. Self-registration is disabled for patient privacy.
+                Only authorized database users can sign in.
               </p>
             </div>
           </div>
@@ -164,7 +168,7 @@ export default function LoginPage() {
               {/* Email Address */}
               <AuthInput
                 type="email"
-                placeholder="Database Authorized Email (e.g. admin@befal.org)"
+                placeholder=" Authorized Email"
                 value={email}
                 onChange={setEmail}
                 icon={<Mail size={15} />}
@@ -218,17 +222,20 @@ export default function LoginPage() {
           <div className="pt-4 mt-4 border-t border-white/60 dark:border-[#38163f] text-center">
             <div className="flex items-center justify-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400">
               <ShieldCheck size={13} className="text-emerald-500" />
-              <span>Protected Health Information (PHI) — 256-bit encryption</span>
+              <span>
+                Protected Health Information (PHI) — 256-bit encryption
+              </span>
             </div>
             <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1">
-              Need access? Contact your HTC Center Administrator to provision an account.
+              Need access? Contact your Umeed Foundation Administrator to
+              provision an account.
             </p>
           </div>
         </div>
 
         {/* Footer */}
         <p className="text-center text-[11px] text-slate-500 dark:text-slate-400">
-          Pakistan Hemophilia Patients Welfare Society · UMEED v2.5 Pro
+          Umeed Welfare Foundation (Hemophilia) · UMEED v2.5 Pro
         </p>
       </div>
     </div>
